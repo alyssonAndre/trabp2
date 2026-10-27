@@ -1,0 +1,262 @@
+{
+  "info": {
+    "name": "Gerenciamento de Livros",
+    "description": "CRUD da biblioteca pessoal (Spring Boot). Execute em ordem pelo Collection Runner: o `bookId` criado no cadastro é reaproveitado nas demais requisições.\n\nStatus de leitura aceitos: `QUERO_LER`, `LENDO`, `LIDO`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "bookId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Cadastrar livro",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('Retorna o livro com id', () => {",
+              "    pm.expect(body.id).to.be.a('number');",
+              "    pm.expect(body.title).to.eql('Dom Casmurro');",
+              "    pm.expect(body.author).to.eql('Machado de Assis');",
+              "    pm.expect(body.genre).to.eql('Romance');",
+              "    pm.expect(body.publicationYear).to.eql(1899);",
+              "    pm.expect(body.readingStatus).to.eql('QUERO_LER');",
+              "});",
+              "",
+              "pm.collectionVariables.set('bookId', body.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Dom Casmurro\",\n  \"author\": \"Machado de Assis\",\n  \"genre\": \"Romance\",\n  \"publicationYear\": 1899,\n  \"readingStatus\": \"QUERO_LER\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/books",
+          "host": ["{{baseUrl}}"],
+          "path": ["books"]
+        }
+      }
+    },
+    {
+      "name": "2. Cadastrar livro - campos inválidos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('Retorna erros de validação por campo', () => {",
+              "    pm.expect(body).to.have.property('title');",
+              "    pm.expect(body).to.have.property('author');",
+              "    pm.expect(body).to.have.property('genre');",
+              "    pm.expect(body).to.have.property('publicationYear');",
+              "    pm.expect(body).to.have.property('readingStatus');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"\",\n  \"author\": \"\",\n  \"genre\": \"\",\n  \"publicationYear\": 500\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/books",
+          "host": ["{{baseUrl}}"],
+          "path": ["books"]
+        }
+      }
+    },
+    {
+      "name": "3. Cadastrar livro - status de leitura inválido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));",
+              "pm.test('Mensagem informa os status aceitos', () => {",
+              "    pm.expect(pm.response.json().message).to.include('QUERO_LER');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"1984\",\n  \"author\": \"George Orwell\",\n  \"genre\": \"Distopia\",\n  \"publicationYear\": 1949,\n  \"readingStatus\": \"ABANDONADO\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/books",
+          "host": ["{{baseUrl}}"],
+          "path": ["books"]
+        }
+      }
+    },
+    {
+      "name": "4. Listar livros",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('Retorna uma lista contendo o livro cadastrado', () => {",
+              "    pm.expect(body).to.be.an('array');",
+              "    const id = Number(pm.collectionVariables.get('bookId'));",
+              "    pm.expect(body.map(b => b.id)).to.include(id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/books",
+          "host": ["{{baseUrl}}"],
+          "path": ["books"]
+        }
+      }
+    },
+    {
+      "name": "5. Consultar livro por ID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Retorna o livro solicitado', () => {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('bookId')));",
+              "    pm.expect(body.title).to.eql('Dom Casmurro');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/books/{{bookId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["books", "{{bookId}}"]
+        }
+      }
+    },
+    {
+      "name": "6. Atualizar livro",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('Retorna o livro atualizado', () => {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.id).to.eql(Number(pm.collectionVariables.get('bookId')));",
+              "    pm.expect(body.genre).to.eql('Romance Realista');",
+              "    pm.expect(body.readingStatus).to.eql('LIDO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Dom Casmurro\",\n  \"author\": \"Machado de Assis\",\n  \"genre\": \"Romance Realista\",\n  \"publicationYear\": 1899,\n  \"readingStatus\": \"LIDO\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/books/{{bookId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["books", "{{bookId}}"]
+        }
+      }
+    },
+    {
+      "name": "7. Excluir livro",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 204 No Content', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/books/{{bookId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["books", "{{bookId}}"]
+        }
+      }
+    },
+    {
+      "name": "8. Consultar livro excluído",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 404 Not Found', () => pm.response.to.have.status(404));",
+              "pm.test('Mensagem de livro não encontrado', () => {",
+              "    pm.expect(pm.response.json().message).to.eql('Livro não encontrado');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/books/{{bookId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["books", "{{bookId}}"]
+        }
+      }
+    }
+  ]
+}
